@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
+import org.apache.pinot.segment.local.io.writer.impl.VarByteChunkSVForwardIndexWriterV4;
 import org.apache.pinot.segment.local.segment.index.column.PhysicalColumnIndexContainer;
 import org.apache.pinot.segment.local.segment.index.readers.BaseImmutableDictionary;
 import org.apache.pinot.segment.local.segment.index.readers.forward.FixedBitMVForwardIndexReader;
@@ -33,6 +34,7 @@ import org.apache.pinot.segment.local.segment.index.readers.forward.FixedByteChu
 import org.apache.pinot.segment.local.segment.index.readers.forward.FixedByteChunkSVForwardIndexReader;
 import org.apache.pinot.segment.local.segment.index.readers.forward.VarByteChunkMVForwardIndexReader;
 import org.apache.pinot.segment.local.segment.index.readers.forward.VarByteChunkSVForwardIndexReader;
+import org.apache.pinot.segment.local.segment.index.readers.forward.VarByteChunkSVForwardIndexReaderV4;
 import org.apache.pinot.segment.local.segment.index.readers.sorted.SortedIndexReaderImpl;
 import org.apache.pinot.segment.spi.ColumnMetadata;
 import org.apache.pinot.segment.spi.index.reader.ForwardIndexReader;
@@ -74,8 +76,14 @@ public class LoaderUtils {
     } else {
       DataType storedType = columnMetadata.getDataType().getStoredType();
       if (columnMetadata.isSingleValue()) {
-        return storedType.isFixedWidth() ? new FixedByteChunkSVForwardIndexReader(dataBuffer, storedType)
-            : new VarByteChunkSVForwardIndexReader(dataBuffer, storedType);
+        if (storedType.isFixedWidth()) {
+          return new FixedByteChunkSVForwardIndexReader(dataBuffer, storedType);
+        }
+        int version = dataBuffer.getInt(0);
+        if (version >= VarByteChunkSVForwardIndexWriterV4.VERSION) {
+          return new VarByteChunkSVForwardIndexReaderV4(dataBuffer, storedType);
+        }
+        return new VarByteChunkSVForwardIndexReader(dataBuffer, storedType);
       } else {
         return storedType.isFixedWidth() ? new FixedByteChunkMVForwardIndexReader(dataBuffer, storedType)
             : new VarByteChunkMVForwardIndexReader(dataBuffer, storedType);
