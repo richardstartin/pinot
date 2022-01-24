@@ -33,7 +33,7 @@ import static org.testng.Assert.assertEquals;
 
 public class FixedBitIntReaderTest {
   private static final File INDEX_DIR = new File(FileUtils.getTempDirectory(), "FixedBitIntReaderTest");
-  private static final int NUM_VALUES = 95;
+  private static final int NUM_VALUES = 950;
   private static final Random RANDOM = new Random();
 
   @BeforeClass
@@ -71,10 +71,16 @@ public class FixedBitIntReaderTest {
         for (int i = 0; i < NUM_VALUES - 2; i++) {
           assertEquals(intReader.readUnchecked(i), values[i]);
         }
-        int[] out = new int[64];
+        int[] out = new int[512];
         intReader.read32(0, out, 0);
         intReader.read32(32, out, 32);
         for (int i = 0; i < 64; i++) {
+          assertEquals(out[i], values[i]);
+        }
+
+        intReader.read256(0, out, 0);
+        intReader.read256(256, out, 256);
+        for (int i = 0; i < 512; i++) {
           assertEquals(out[i], values[i]);
         }
       }

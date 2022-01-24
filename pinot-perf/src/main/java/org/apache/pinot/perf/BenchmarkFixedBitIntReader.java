@@ -38,6 +38,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
@@ -51,7 +52,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 public class BenchmarkFixedBitIntReader {
   private static final File INDEX_DIR = new File(FileUtils.getTempDirectory(), "BenchmarkFixedBitIntReader");
   private static final int NUM_VALUES = 5_000_000;
-  private static final Random RANDOM = new Random();
+  private static final Random RANDOM = new Random(0);
 
   private PinotDataBuffer _dataBuffer;
   private PinotDataBitSet _bitSet;
@@ -115,16 +116,32 @@ public class BenchmarkFixedBitIntReader {
   }
 
   @Benchmark
-  public int intReaderBulk() {
-    int sum = 0;
+  public void intReaderBulk(Blackhole bh) {
     int[] buffer = new int[32];
     for (int i = 0; i < NUM_VALUES - 32; i += 32) {
       _intReader.read32(i, buffer, 0);
-      for (int j = 0; j < 32; j++) {
-        sum += buffer[j];
-      }
+      bh.consume(buffer);
     }
-    return sum;
+  }
+
+  @Benchmark
+  public void intReaderBulk8x32(Blackhole bh) {
+    int[] buffer = new int[256];
+    for (int i = 0; i < NUM_VALUES - 256; i += 256) {
+      for (int offset = 0; offset < 256; offset += 32) {
+        _intReader.read32(i + offset, buffer, offset);
+      }
+      bh.consume(buffer);
+    }
+  }
+
+  @Benchmark
+  public void intReaderBulk256(Blackhole bh) {
+    int[] buffer = new int[256];
+    for (int i = 0; i < NUM_VALUES - 256; i += 256) {
+      _intReader.read256(i, buffer, 0);
+      bh.consume(buffer);
+    }
   }
 
   public static void main(String[] args)

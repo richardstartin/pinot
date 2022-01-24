@@ -49,6 +49,16 @@ public abstract class FixedBitIntReader {
    */
   public abstract void read32(int index, int[] out, int outPos);
 
+  /**
+   * Reads 256 values starting from the given index. The index must be multiple of 256, and all 256 values must be
+   * included in the data buffer, i.e. {@code index + 256 <= numValues}.
+   */
+  public void read256(int index, int[] out, int outPos) {
+    for (int offset = 0; offset < 256; offset += 32) {
+      read32(index + offset, out, outPos + offset);
+    }
+  }
+
   public static FixedBitIntReader getReader(PinotDataBuffer dataBuffer, int numBitsPerValue) {
     switch (numBitsPerValue) {
       case 1:
